@@ -35,19 +35,21 @@ from app.tools.customer_lookup import customer_lookup
 from app.tools.kb_search import kb_search
 from app.tools.escalate import evaluate_escalation
 from app.tools.draft_reply import draft_reply
-from app.pipeline.classifiers import FineTunedClassifier, ZeroShotLLMClassifier
+from app.pipeline.classifiers import TfidfCalibratedBaseline, ZeroShotLLMClassifier
 from app.core.logging import logger
 from app.config import settings
 
 class TriageAgent:
     def __init__(self):
-        self.fine_tuned_classifier = FineTunedClassifier()
+        self.tfidf_baseline = TfidfCalibratedBaseline()
+        self.fine_tuned_classifier = self.tfidf_baseline  # Backward compatibility alias
         self.zero_shot_classifier = ZeroShotLLMClassifier()
 
     def process_ticket(
         self,
         ticket_input: TicketCreate,
         db: Optional[Session] = None,
+        use_baseline: bool = False,
         use_fine_tuned: bool = False
     ) -> TicketResponse:
         """
@@ -117,7 +119,8 @@ class TriageAgent:
         # -------------------------------------------------------------
         # Step 3: Multi-Dimensional Classification
         # -------------------------------------------------------------
-        classifier = self.fine_tuned_classifier if use_fine_tuned else self.zero_shot_classifier
+        use_base = use_baseline or use_fine_tuned
+        classifier = self.tfidf_baseline if use_base else self.zero_shot_classifier
         classification = classifier.classify(ticket_input.subject, ticket_input.body)
 
         # -------------------------------------------------------------

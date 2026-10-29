@@ -140,7 +140,7 @@ with st.sidebar:
         [
             "📥 Live Ticket Queue",
             "🔍 Ticket Reasoning Trace",
-            "📊 Fine-Tuned vs Zero-Shot Eval",
+            "📊 TF-IDF Baseline vs Zero-Shot Eval",
             "⚡ Webhook & Ingestion Simulator",
             "📈 Metrics & SLA Analytics"
         ],
@@ -405,11 +405,11 @@ elif selected_tab == "🔍 Ticket Reasoning Trace":
 
 
 # ---------------------------------------------------------------------------
-# TAB 3: Fine-Tuned vs Zero-Shot Evaluation Benchmark
+# TAB 3: TF-IDF Baseline vs Zero-Shot Evaluation Benchmark
 # ---------------------------------------------------------------------------
-elif selected_tab == "📊 Fine-Tuned vs Zero-Shot Eval":
-    st.title("📊 Evaluation Benchmark: Fine-Tuned vs. Zero-Shot LLM")
-    st.caption("Head-to-head comparison evaluating Macro/Micro F1, Latency percentiles, and Token Cost per 1,000 tickets.")
+elif selected_tab == "📊 TF-IDF Baseline vs Zero-Shot Eval":
+    st.title("📊 Evaluation Benchmark: TF-IDF + Calibrated Linear Baseline vs. Zero-Shot LLM")
+    st.caption("Statistical generalization benchmark on public customer support tickets (data/splits/test.json).")
 
     col_btn, _ = st.columns([1, 3])
     with col_btn:
@@ -423,104 +423,124 @@ elif selected_tab == "📊 Fine-Tuned vs Zero-Shot Eval":
         with open(RESULTS_PATH, "r", encoding="utf-8") as f:
             eval_data = json.load(f)
 
-        ft = eval_data["models"]["fine_tuned"]
-        zs = eval_data["models"]["zero_shot_llm"]
+        models = eval_data.get("models", {})
+        base = models.get("tfidf_calibrated_baseline") or models.get("fine_tuned")
+        zs = models.get("zero_shot_llm")
+        dataset_meta = eval_data.get("dataset", {})
+        edge_suite = eval_data.get("adversarial_and_edge_suite", {})
 
-        st.markdown(f"**Benchmark Dataset Size:** `{eval_data['test_samples_count']} tickets` | **Adversarial Guardrail Detection:** `{eval_data['guardrail_adversarial_detection_rate']}%`")
+        st.markdown(f"**Benchmark Dataset:** `{dataset_meta.get('name', 'Public Support Tickets')}` (`{dataset_meta.get('test_split_size', 300)} test tickets`) | **Source:** `{dataset_meta.get('source', 'Hugging Face CC0')}`")
 
-        # Head to Head Comparison Cards
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Intent Macro F1</div>
-                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
-                    <div><span style="font-size:11px; color:#94a3b8;">Fine-Tuned</span><br><b style="font-size:20px; color:#60a5fa;">{ft['intent_macro_f1']*100:.1f}%</b></div>
-                    <div><span style="font-size:11px; color:#94a3b8;">Zero-Shot</span><br><b style="font-size:20px; color:#34d399;">{zs['intent_macro_f1']*100:.1f}%</b></div>
+        if zs is None:
+            st.info("ℹ️ **LLM Column Skipped:** No live LLM API key (`OPENAI_API_KEY` or `GEMINI_API_KEY`) is configured in the environment. In compliance with rigorous evaluation practices, simulated predictions are not fabricated.")
+
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Intent Macro F1</div>
+                    <div class="metric-val" style="color: #60a5fa;">{base['intent_macro_f1']*100:.1f}%</div>
+                    <span style="font-size:11px; color:#94a3b8;">TF-IDF + Calibrated Baseline</span>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-        with c2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Priority Macro F1</div>
-                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
-                    <div><span style="font-size:11px; color:#94a3b8;">Fine-Tuned</span><br><b style="font-size:20px; color:#60a5fa;">{ft['priority_macro_f1']*100:.1f}%</b></div>
-                    <div><span style="font-size:11px; color:#94a3b8;">Zero-Shot</span><br><b style="font-size:20px; color:#34d399;">{zs['priority_macro_f1']*100:.1f}%</b></div>
+                """, unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Priority Macro F1</div>
+                    <div class="metric-val" style="color: #60a5fa;">{base['priority_macro_f1']*100:.1f}%</div>
+                    <span style="font-size:11px; color:#94a3b8;">TF-IDF + Calibrated Baseline</span>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-        with c3:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Latency p50 (Median)</div>
-                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
-                    <div><span style="font-size:11px; color:#94a3b8;">Fine-Tuned</span><br><b style="font-size:20px; color:#34d399;">{ft['latency_p50_ms']:.1f}ms</b></div>
-                    <div><span style="font-size:11px; color:#94a3b8;">Zero-Shot</span><br><b style="font-size:20px; color:#fbbf24;">{zs['latency_p50_ms']:.1f}ms</b></div>
+                """, unsafe_allow_html=True)
+            with c3:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Latency p50 (Median)</div>
+                    <div class="metric-val" style="color: #34d399;">{base['latency_p50_ms']:.2f}ms</div>
+                    <span style="font-size:11px; color:#94a3b8;">Deterministic sub-10ms</span>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
-        with c4:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Cost / 1,000 Tickets</div>
-                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
-                    <div><span style="font-size:11px; color:#94a3b8;">Fine-Tuned</span><br><b style="font-size:20px; color:#34d399;">$0.00</b></div>
-                    <div><span style="font-size:11px; color:#94a3b8;">Zero-Shot</span><br><b style="font-size:20px; color:#38bdf8;">${zs['cost_per_1000_tickets_usd']:.4f}</b></div>
+                """, unsafe_allow_html=True)
+            with c4:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Cost / 1,000 Tickets</div>
+                    <div class="metric-val" style="color: #34d399;">$0.00</div>
+                    <span style="font-size:11px; color:#94a3b8;">Zero marginal inference cost</span>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            ch1, ch2 = st.columns(2)
+            with ch1:
+                st.markdown("### 🎯 Baseline F1 Scores")
+                f1_df = pd.DataFrame([
+                    {"Metric": "Intent Macro F1", "Score": base["intent_macro_f1"] * 100},
+                    {"Metric": "Intent Micro F1 (Acc)", "Score": base["intent_micro_f1"] * 100},
+                    {"Metric": "Priority Macro F1", "Score": base["priority_macro_f1"] * 100},
+                    {"Metric": "Priority Micro F1", "Score": base["priority_micro_f1"] * 100},
+                ])
+                fig1 = px.bar(f1_df, x="Metric", y="Score", color="Metric", color_discrete_sequence=px.colors.qualitative.Safe)
+                fig1.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#94a3b8"), yaxis=dict(range=[0, 100]))
+                st.plotly_chart(fig1, use_container_width=True)
 
-        # Plotly Comparison Visualizations
-        ch1, ch2 = st.columns(2)
-        with ch1:
-            st.markdown("### 🎯 Classification Performance (F1)")
-            f1_df = pd.DataFrame([
-                {"Model": "Fine-Tuned Classifier", "Metric": "Intent Macro F1", "Score": ft["intent_macro_f1"] * 100},
-                {"Model": "Zero-Shot LLM", "Metric": "Intent Macro F1", "Score": zs["intent_macro_f1"] * 100},
-                {"Model": "Fine-Tuned Classifier", "Metric": "Priority Macro F1", "Score": ft["priority_macro_f1"] * 100},
-                {"Model": "Zero-Shot LLM", "Metric": "Priority Macro F1", "Score": zs["priority_macro_f1"] * 100},
-            ])
-            fig1 = px.bar(
-                f1_df, x="Metric", y="Score", color="Model", barmode="group",
-                color_discrete_map={"Fine-Tuned Classifier": "#60a5fa", "Zero-Shot LLM": "#34d399"}
-            )
-            fig1.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#94a3b8"),
-                yaxis=dict(title="Score (%)", range=[0, 100])
-            )
-            st.plotly_chart(fig1, use_container_width=True)
+            with ch2:
+                st.markdown("### ⚡ Latency Percentiles (ms)")
+                lat_df = pd.DataFrame([
+                    {"Percentile": "p50 (Median)", "Latency (ms)": base["latency_p50_ms"]},
+                    {"Percentile": "p95", "Latency (ms)": base["latency_p95_ms"]},
+                    {"Percentile": "p99", "Latency (ms)": base["latency_p99_ms"]},
+                ])
+                fig2 = px.bar(lat_df, x="Percentile", y="Latency (ms)", color="Percentile", color_discrete_sequence=["#60a5fa", "#38bdf8", "#818cf8"])
+                fig2.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color="#94a3b8"))
+                st.plotly_chart(fig2, use_container_width=True)
 
-        with ch2:
-            st.markdown("### ⚡ Latency Percentiles (ms)")
-            lat_df = pd.DataFrame([
-                {"Percentile": "p50 (Median)", "Fine-Tuned": ft["latency_p50_ms"], "Zero-Shot LLM": zs["latency_p50_ms"]},
-                {"Percentile": "p95", "Fine-Tuned": ft["latency_p95_ms"], "Zero-Shot LLM": zs["latency_p95_ms"]},
-                {"Percentile": "p99", "Fine-Tuned": ft["latency_p99_ms"], "Zero-Shot LLM": zs["latency_p99_ms"]}
-            ])
-            fig2 = go.Figure(data=[
-                go.Bar(name='Fine-Tuned (Local)', x=lat_df["Percentile"], y=lat_df["Fine-Tuned"], marker_color='#60a5fa'),
-                go.Bar(name='Zero-Shot LLM', x=lat_df["Percentile"], y=lat_df["Zero-Shot LLM"], marker_color='#f59e0b')
-            ])
-            fig2.update_layout(
-                barmode='group',
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#94a3b8"),
-                yaxis=dict(title="Latency (ms)")
-            )
-            st.plotly_chart(fig2, use_container_width=True)
+        else:
+            # Comparative view when live LLM key was provided
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Intent Macro F1</div>
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
+                        <div><span style="font-size:11px; color:#94a3b8;">TF-IDF</span><br><b style="font-size:20px; color:#60a5fa;">{base['intent_macro_f1']*100:.1f}%</b></div>
+                        <div><span style="font-size:11px; color:#94a3b8;">LLM</span><br><b style="font-size:20px; color:#34d399;">{zs['intent_macro_f1']*100:.1f}%</b></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Priority Macro F1</div>
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
+                        <div><span style="font-size:11px; color:#94a3b8;">TF-IDF</span><br><b style="font-size:20px; color:#60a5fa;">{base['priority_macro_f1']*100:.1f}%</b></div>
+                        <div><span style="font-size:11px; color:#94a3b8;">LLM</span><br><b style="font-size:20px; color:#34d399;">{zs['priority_macro_f1']*100:.1f}%</b></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            with c3:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Latency p50 (Median)</div>
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
+                        <div><span style="font-size:11px; color:#94a3b8;">TF-IDF</span><br><b style="font-size:20px; color:#34d399;">{base['latency_p50_ms']:.1f}ms</b></div>
+                        <div><span style="font-size:11px; color:#94a3b8;">LLM</span><br><b style="font-size:20px; color:#fbbf24;">{zs['latency_p50_ms']:.1f}ms</b></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            with c4:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Cost / 1,000 Tickets</div>
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:8px;">
+                        <div><span style="font-size:11px; color:#94a3b8;">TF-IDF</span><br><b style="font-size:20px; color:#34d399;">$0.00</b></div>
+                        <div><span style="font-size:11px; color:#94a3b8;">LLM</span><br><b style="font-size:20px; color:#38bdf8;">${zs['cost_per_1000_tickets_usd']:.4f}</b></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        st.markdown("### 💡 Architecture Trade-Off Analysis")
-        st.markdown("""
-        - **Fine-Tuned Classifier**: Delivers blistering sub-5ms throughput with zero marginal inference cost ($0.00). Ideal as a high-volume Tier-1 router for clear, frequent inquiries.
-        - **Zero-Shot LLM**: Delivers superior reasoning on ambiguous edge cases, complex multi-part tickets, and nuance (+23% F1 gain), but requires ~60-200ms latency and minimal token cost.
-        - **Hybrid Recommendation**: Route high-confidence matches through the fine-tuned pipeline and cascade low-confidence tickets to the Zero-Shot LLM.
-        """)
+        if edge_suite:
+            st.markdown("### 🛡️ Adversarial & Edge Cases Suite (Separate Unit Suite)")
+            st.markdown(f"Evaluated on `{edge_suite.get('total_cases', 24)}` hand-crafted edge cases: `{edge_suite.get('injection_blocked', 3)}/{edge_suite.get('injection_cases', 3)}` prompt-injection attempts intercepted by the regex shield (`{edge_suite.get('block_rate', 100)}%`).")
+
     else:
         st.info("No benchmark results found yet. Click 'Run Live Evaluation Benchmark' to run the test suite!")
 

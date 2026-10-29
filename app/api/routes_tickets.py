@@ -21,14 +21,15 @@ router = APIRouter(prefix="/api/tickets", tags=["Tickets"])
 async def intake_ticket(
     ticket: TicketCreate,
     background_tasks: BackgroundTasks,
-    use_fine_tuned: bool = Query(False, description="Use fine-tuned classifier instead of zero-shot"),
+    use_baseline: bool = Query(False, description="Use TF-IDF + calibrated linear baseline instead of zero-shot"),
+    use_fine_tuned: bool = Query(False, description="Deprecated alias for use_baseline"),
     db: Session = Depends(get_db)
 ):
     """
     Submits a ticket to the triage agent pipeline.
     Executes guardrails, tool calling, classification, SLA computation, and routing.
     """
-    response = triage_agent.process_ticket(ticket, db=db, use_fine_tuned=use_fine_tuned)
+    response = triage_agent.process_ticket(ticket, db=db, use_baseline=(use_baseline or use_fine_tuned))
     
     # If ticket was escalated or quarantined, dispatch Slack alert in background
     if response.status in ("ESCALATED", "QUARANTINED"):

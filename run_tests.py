@@ -30,8 +30,8 @@ def run_all_tests():
         test_text_sanitizer
     )
     from tests.test_classifiers import (
-        test_fine_tuned_classifier,
-        test_zero_shot_classifier
+        test_tfidf_calibrated_baseline,
+        test_zero_shot_classifier_key_enforcement
     )
     from tests.test_triage_pipeline import (
         test_enterprise_outage_triage,
@@ -48,8 +48,8 @@ def run_all_tests():
         ("Guardrail: System Prompt Override Interception", test_system_prompt_override_attempt),
         ("Guardrail: Role Hijacking Quarantine", test_role_hijacking_and_jailbreak),
         ("Guardrail: HTML/Delimiter Sanitizer", test_text_sanitizer),
-        ("Classifier: Fine-Tuned Model Prediction", test_fine_tuned_classifier),
-        ("Classifier: Zero-Shot LLM Reasoning", test_zero_shot_classifier),
+        ("Classifier: TF-IDF + Calibrated Linear Baseline", test_tfidf_calibrated_baseline),
+        ("Classifier: Zero-Shot LLM API Key Enforcement", test_zero_shot_classifier_key_enforcement),
         ("Pipeline: Enterprise P0 Triage & Tool Calling", test_enterprise_outage_triage),
         ("Pipeline: Adversarial Attack Containment", test_malicious_injection_quarantine),
         ("Connectors: Zendesk Webhook Parser", test_zendesk_webhook_parser),

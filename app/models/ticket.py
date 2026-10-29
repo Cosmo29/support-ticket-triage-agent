@@ -40,7 +40,7 @@ class ClassificationResult(BaseModel):
     sentiment: str = "NEUTRAL"  # "POSITIVE", "NEUTRAL", "FRUSTRATED", "ANGRY"
     confidence: float = Field(default=0.85, ge=0.0, le=1.0)
     reasoning: str = ""
-    classifier_type: str = "zero-shot-llm"  # or "fine-tuned"
+    classifier_type: str = "zero-shot-llm"  # or "tfidf-calibrated-baseline"
     token_usage: Dict[str, int] = Field(default_factory=lambda: {"prompt_tokens": 0, "completion_tokens": 0})
 
 class DraftReply(BaseModel):

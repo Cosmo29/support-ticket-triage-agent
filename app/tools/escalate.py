@@ -70,6 +70,15 @@ def evaluate_escalation(
 
 def _map_team_from_intent(intent: str) -> str:
     mapping = {
+        # Standardized Public Dataset Taxonomy
+        "Billing & Payments": "Finance & Billing Ops",
+        "Refunds & Disputes": "Finance & Billing Ops",
+        "Account & Authentication": "Identity & Security Engineering",
+        "Technical & System Issues": "SRE & Core Infrastructure",
+        "Technical & System Issue": "SRE & Core Infrastructure",
+        "General Service Inquiry": "Tier-1 Customer Support",
+        "General Product Inquiry": "Tier-1 Customer Support",
+        # Legacy / Edge Taxonomy
         "Billing & Refunds": "Finance & Billing Ops",
         "SSO & Authentication": "Identity & Security Engineering",
         "API & Rate Limits": "Developer Relations & Platform Eng",
