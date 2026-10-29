@@ -1,6 +1,8 @@
-# 🛡️ Enterprise AI Support Ticket Triage Agent
+# Support Ticket Triage Agent
 
-An autonomous, multi-dimensional support ticket triage system engineered with **FastAPI**, **Streamlit**, and **Machine Learning / LLM pipelines**. Designed for production high-volume support engineering teams handling Zendesk, Slack, and email intake.
+A FastAPI service that triages support tickets (intent, priority, sentiment), retrieves relevant knowledge-base articles, drafts grounded replies for human review, and escalates low-confidence or high-risk tickets. Includes a prompt-injection filter, a Streamlit console, and an evaluation harness comparing a classical ML baseline against an LLM classifier.
+
+> **Status:** Portfolio project. Tested with a Zendesk sandbox webhook; Slack and email connectors are tested with simulated payloads only.
 
 ---
 
