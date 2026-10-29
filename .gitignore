@@ -37,3 +37,7 @@ $RECYCLE.BIN/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Model cache artifacts
+data/models/*.joblib
+

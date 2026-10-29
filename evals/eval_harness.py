@@ -282,8 +282,75 @@ def run_evaluation() -> Dict[str, Any]:
 
     if llm_clf.has_api_key:
         active_model = os.getenv("LLM_MODEL", settings.LLM_MODEL)
-        print(f"\nLive API key detected. Running Zero-Shot LLM inference ({active_model})...")
-        # Run live if requested and key is provided
+        if active_model in ("gemini-1.5-flash", "gemini-2.5-flash"):
+            active_model = "gemini-3.5-flash-lite"
+        llm_sample_size = int(os.getenv("LLM_EVAL_SAMPLES", "50"))
+        if llm_sample_size > 0:
+            print(f"\nLive API key detected. Running Zero-Shot LLM inference ({active_model}) on {llm_sample_size} stratified test tickets...")
+            from concurrent.futures import ThreadPoolExecutor
+            from collections import defaultdict
+            import random
+
+            # Stratified sampling of test set by ground truth intent
+            by_intent = defaultdict(list)
+            for item in test_samples:
+                by_intent[item["intent"]].append(item)
+
+            rng = random.Random(42)
+            eval_items = []
+            per_class = max(1, llm_sample_size // len(by_intent))
+            for cat, items in by_intent.items():
+                shuffled = list(items)
+                rng.shuffle(shuffled)
+                eval_items.extend(shuffled[:per_class])
+
+            def eval_single(item):
+                t0 = time.time()
+                try:
+                    res = llm_clf.classify(item.get("subject", "Customer Inquiry"), item.get("body", ""), require_live=True)
+                    dt_ms = (time.time() - t0) * 1000
+                    return {
+                        "gt": item["intent"],
+                        "pred": res.intent,
+                        "latency_ms": dt_ms,
+                        "tokens": res.token_usage or {},
+                        "success": True
+                    }
+                except Exception as e:
+                    return {"gt": item["intent"], "pred": "ERROR", "latency_ms": 0, "tokens": {}, "success": False, "error": str(e)}
+
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                raw_llm_out = list(executor.map(eval_single, eval_items))
+
+            valid_runs = [r for r in raw_llm_out if r["success"]]
+            if valid_runs:
+                llm_gts = [r["gt"] for r in valid_runs]
+                llm_preds = [r["pred"] for r in valid_runs]
+                llm_latencies = [r["latency_ms"] for r in valid_runs]
+                llm_acc = float(accuracy_score(llm_gts, llm_preds))
+                llm_macro_f1 = float(f1_score(llm_gts, llm_preds, average="macro", zero_division=0))
+                llm_p50 = float(np.percentile(llm_latencies, 50))
+                llm_p95 = float(np.percentile(llm_latencies, 95))
+                llm_p99 = float(np.percentile(llm_latencies, 99))
+
+                total_in_tokens = sum(r["tokens"].get("prompt_tokens", 0) for r in valid_runs)
+                total_out_tokens = sum(r["tokens"].get("completion_tokens", 0) for r in valid_runs)
+                # Gemini 3.5 Flash Lite pricing: $0.075 / 1M prompt, $0.30 / 1M completion
+                avg_cost_ticket = ((total_in_tokens / 1e6) * 0.075 + (total_out_tokens / 1e6) * 0.30) / len(valid_runs)
+                llm_cost_per_1k = avg_cost_ticket * 1000
+
+                llm_results = {
+                    "model": active_model,
+                    "evaluated_samples": len(valid_runs),
+                    "total_requested": len(eval_items),
+                    "accuracy": round(llm_acc, 4),
+                    "macro_f1": round(llm_macro_f1, 4),
+                    "latency_p50_ms": round(llm_p50, 2),
+                    "latency_p95_ms": round(llm_p95, 2),
+                    "latency_p99_ms": round(llm_p99, 2),
+                    "cost_per_1000_tickets_usd": round(llm_cost_per_1k, 4),
+                    "sampling": f"Stratified test slice (N={len(valid_runs)}, seed=42) across 5 classes to respect API rate limits."
+                }
     else:
         print("\n⚠️  LLM column: not run (no API key configured in environment)")
 
@@ -382,7 +449,11 @@ def run_evaluation() -> Dict[str, Any]:
     print(f"{'TF-IDF Linear (77 original classes)':<38} | {acc_77*100:>14.2f}% | {macro_f1_77*100:>14.2f}%")
     print(f"{'TF-IDF Linear (5 classes, uncalibrated)':<38} | {uncal_acc*100:>14.2f}% | {uncal_macro_f1*100:>14.2f}%")
     print(f"{'TF-IDF + Calibrated Linear Baseline':<38} | {cal_acc*100:>14.2f}% | {cal_macro_f1*100:>14.2f}%")
-    print(f"{'Zero-Shot LLM':<38} | {'not run':>15} | {'not run':>15}")
+    if isinstance(llm_results, dict):
+        llm_label = f"Zero-Shot LLM ({llm_results['model']}, N={llm_results['evaluated_samples']})"
+        print(f"{llm_label:<38} | {llm_results['accuracy']*100:>14.2f}% | {llm_results['macro_f1']*100:>14.2f}%")
+    else:
+        print(f"{'Zero-Shot LLM':<38} | {'not run':>15} | {'not run':>15}")
     print("-" * 78)
     print(f"Calibration: Calibrated ECE = {cal_ece:.4f} (vs Uncalibrated ECE = {uncal_ece:.4f})")
     print(f"             Calibrated Brier = {cal_brier:.4f} (vs Uncalibrated Brier = {uncal_brier:.4f})")

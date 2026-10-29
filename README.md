@@ -108,11 +108,12 @@ Dataset: [`PolyAI/banking77`](evals/DATASET.md) (CC BY 4.0), 3,080 official test
 | **Trivial Keyword Heuristic** | 64.16% | 55.76% | N/A | 0.05 ms | $0.00 |
 | **TF-IDF Linear (77 original intents)** *(context difficulty)* | 84.68% | 84.63% | N/A | 8.31 ms | $0.00 |
 | **TF-IDF Linear (5 classes, uncalibrated)** | 90.97% | 89.23% | 0.1422 | 8.31 ms | $0.00 |
-| **TF-IDF + Calibrated Linear Baseline** | **91.56%** | **90.87%** | **0.0814** | **8.31 ms** | **$0.00** |
-| **Zero-Shot LLM** | *not run* | *not run* | *not run* | *not run* | *not run* |
+| **TF-IDF + Calibrated Linear Baseline** | **91.56%** | **90.87%** | **0.0814** | **7.64 ms** | **$0.00** |
+| **Zero-Shot LLM** (`gemini-3.5-flash-lite`, $N=20$ stratified) | 60.00% | 59.62% | N/A | 10,159 ms | $0.038 |
 
 > **Adversarial Guardrail Status:** regex filter, 3 unit tests; full security eval pending.
 > **Priority Policy Note:** Priority is rule-derived from intent, customer tier, and outage keywords (heuristic policy, not ground truth); it is intentionally omitted from statistical ML benchmarks.
+> **LLM Evaluation Note:** Live LLM benchmark was executed with `gemini-3.5-flash-lite` on a stratified sample ($N=20$, `seed=42`) across the 5 categories. The classical baseline outperforms zero-shot LLM on domain accuracy (91.56% vs 60.00%) while delivering 1,300x lower latency ($7.6\text{ms}$ vs $10,159\text{ms}$) and $0 token cost.
 
 To benchmark live LLM inference, configure your API key in `.env`:
 ```bash

@@ -25,11 +25,11 @@ LEGACY_TRAIN_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../
 TRAIN_PATH = SPLIT_TRAIN_PATH if os.path.exists(SPLIT_TRAIN_PATH) else LEGACY_TRAIN_PATH
 
 SUPPORTED_INTENTS = [
-    "Billing & Invoices",
-    "Refunds & Credits",
-    "Subscription Cancellation",
-    "Technical & System Issue",
-    "General Product Inquiry"
+    "Billing & Payments",
+    "Refunds & Disputes",
+    "Account & Authentication",
+    "Technical & System Issues",
+    "General Service Inquiry"
 ]
 
 PRIORITY_LEVELS = ["P0", "P1", "P2", "P3"]
@@ -102,6 +102,19 @@ class TfidfCalibratedBaseline:
                 logger.warning(f"Training dataset not found at {train_file}. Skipping baseline training.")
                 return
 
+        # Check for serialized cache
+        cache_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/models"))
+        cache_path = os.path.join(cache_dir, "tfidf_baseline.joblib")
+        if os.path.exists(cache_path) and os.path.getmtime(cache_path) >= os.path.getmtime(train_file):
+            try:
+                import joblib
+                self.intent_pipeline = joblib.load(cache_path)
+                self.is_trained = True
+                logger.info(f"Loaded cached TF-IDF calibrated baseline from {cache_path}")
+                return
+            except Exception as e:
+                logger.warning(f"Failed to load cached model from {cache_path}: {e}")
+
         try:
             with open(train_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -121,6 +134,14 @@ class TfidfCalibratedBaseline:
 
             self.is_trained = True
             logger.info(f"TF-IDF + calibrated linear baseline successfully trained on {len(data)} examples from {os.path.basename(train_file)}.")
+
+            # Persist to disk cache
+            try:
+                import joblib
+                os.makedirs(cache_dir, exist_ok=True)
+                joblib.dump(self.intent_pipeline, cache_path)
+            except Exception as ce:
+                logger.warning(f"Failed to cache baseline model: {ce}")
         except Exception as e:
             logger.error(f"Error training TF-IDF calibrated baseline: {e}", exc_info=True)
 
@@ -245,25 +266,30 @@ class ZeroShotLLMClassifier:
         return self._interactive_demo_fallback(subject, body, start_time)
 
     def _call_gemini(self, text: str, start_time: float) -> ClassificationResult:
-        import google.generativeai as genai
-        genai.configure(api_key=self.gemini_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        from google import genai
+        client = genai.Client(api_key=self.gemini_key)
+        model_name = os.getenv("LLM_MODEL", "gemini-3.5-flash-lite")
+        if model_name in ("gemini-1.5-flash", "gemini-2.5-flash"):
+            model_name = "gemini-3.5-flash-lite"
         
         prompt = self._build_prompt(text)
-        response = model.generate_content(prompt)
-        content = response.text.strip()
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt
+        )
+        content = response.text.strip() if response.text else "{}"
         
         result_dict = self._parse_json_response(content)
         prompt_tokens = int(len(prompt) / 4)
         completion_tokens = int(len(content) / 4)
         
         return ClassificationResult(
-            intent=result_dict.get("intent", "General Product Inquiry"),
+            intent=result_dict.get("intent", "General Service Inquiry"),
             priority=result_dict.get("priority", "P3"),
             urgency_score=float(result_dict.get("urgency_score", 0.5)),
             sentiment=result_dict.get("sentiment", "NEUTRAL"),
             confidence=float(result_dict.get("confidence", 0.90)),
-            reasoning=result_dict.get("reasoning", "Live Gemini Zero-Shot Classification"),
+            reasoning=result_dict.get("reasoning", f"Live Gemini Zero-Shot Classification ({model_name})"),
             classifier_type="zero-shot-llm",
             token_usage={"prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens}
         )
@@ -286,7 +312,7 @@ class ZeroShotLLMClassifier:
         usage = response.usage
         
         return ClassificationResult(
-            intent=result_dict.get("intent", "General Product Inquiry"),
+            intent=result_dict.get("intent", "General Service Inquiry"),
             priority=result_dict.get("priority", "P3"),
             urgency_score=float(result_dict.get("urgency_score", 0.5)),
             sentiment=result_dict.get("sentiment", "NEUTRAL"),
@@ -299,16 +325,16 @@ class ZeroShotLLMClassifier:
     def _interactive_demo_fallback(self, subject: str, body: str, start_time: float) -> ClassificationResult:
         """Demo placeholder used strictly when exploring UI without API keys."""
         text_lower = f"{subject} {body}".lower()
-        if any(k in text_lower for k in ["invoice", "charge", "billing", "card"]):
-            intent = "Billing & Invoices"
-        elif any(k in text_lower for k in ["refund", "money back", "return"]):
-            intent = "Refunds & Credits"
-        elif any(k in text_lower for k in ["cancel", "subscription"]):
-            intent = "Subscription Cancellation"
-        elif any(k in text_lower for k in ["error", "issue", "bug", "crash", "down", "outage", "500"]):
-            intent = "Technical & System Issue"
+        if any(k in text_lower for k in ["invoice", "charge", "billing", "card", "payment"]):
+            intent = "Billing & Payments"
+        elif any(k in text_lower for k in ["refund", "money back", "dispute", "return"]):
+            intent = "Refunds & Disputes"
+        elif any(k in text_lower for k in ["cancel", "subscription", "login", "password", "pin", "verify"]):
+            intent = "Account & Authentication"
+        elif any(k in text_lower for k in ["error", "issue", "bug", "crash", "down", "outage", "500", "transfer"]):
+            intent = "Technical & System Issues"
         else:
-            intent = "General Product Inquiry"
+            intent = "General Service Inquiry"
 
         priority = "P0" if any(w in text_lower for w in ["outage", "critical", "downtime", "unreachable"]) else "P2"
         return ClassificationResult(

@@ -1,5 +1,5 @@
 {
-  "benchmark_timestamp": "2026-10-29T10:54:25Z",
+  "benchmark_timestamp": "2026-10-29T12:20:33Z",
   "dataset": {
     "name": "PolyAI/banking77",
     "source": "Hugging Face (CC BY 4.0 License)",
@@ -38,12 +38,23 @@
       "macro_f1": 0.9087,
       "brier_score": 0.1509,
       "ece": 0.0814,
-      "latency_p50_ms": 8.31,
-      "latency_p95_ms": 22.3,
-      "latency_p99_ms": 52.5,
+      "latency_p50_ms": 7.64,
+      "latency_p95_ms": 34.29,
+      "latency_p99_ms": 69.84,
       "cost_per_1000_tickets_usd": 0.0
     },
-    "zero_shot_llm": "not run"
+    "zero_shot_llm": {
+      "model": "gemini-3.5-flash-lite",
+      "evaluated_samples": 20,
+      "total_requested": 20,
+      "accuracy": 0.6,
+      "macro_f1": 0.5962,
+      "latency_p50_ms": 10159.17,
+      "latency_p95_ms": 19275.08,
+      "latency_p99_ms": 46344.74,
+      "cost_per_1000_tickets_usd": 0.0376,
+      "sampling": "Stratified test slice (N=20, seed=42) across 5 classes to respect API rate limits."
+    }
   },
   "priority_policy_note": "Priority is derived via deterministic rule heuristics (signals: customer tier, urgency language, outage keywords). It is not an ML ground-truth label and is omitted from statistical F1 benchmarks.",
   "confusion_matrix": {
