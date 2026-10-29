@@ -1,0 +1,55 @@
+{
+  "dataset_name": "PolyAI/banking77",
+  "license": "CC BY 4.0",
+  "official_splits": {
+    "official_train": 10003,
+    "official_test": 3080
+  },
+  "leakage_statistics": {
+    "exact_duplicate_queries": 7,
+    "exact_duplicate_samples": [
+      "how do i unblock my pin?",
+      "what businesses accept this card?",
+      "where can i use my card?",
+      "there are a few transaction that i don't recognize, i think someone managed to get my card details and use it.",
+      "at which atms can i use this card?"
+    ],
+    "near_duplicates_std_tfidf": 237,
+    "near_duplicates_std_tfidf_percent": 7.69,
+    "near_duplicates_stop_words_tfidf": 1016,
+    "near_duplicates_stop_words_percent": 32.99,
+    "sample_near_duplicates": [
+      {
+        "test_query": "How long does a card delivery take?",
+        "train_query": "how long does delivery take?",
+        "similarity": 0.9758
+      },
+      {
+        "test_query": "My card hasn't arrived yet.",
+        "train_query": "Why hasn't my card arrived yet?",
+        "similarity": 0.9548
+      },
+      {
+        "test_query": "How do I link a new card?",
+        "train_query": "How do I link my new card?",
+        "similarity": 0.9831
+      },
+      {
+        "test_query": "what are exchange rates",
+        "train_query": "What are the exchange rates?",
+        "similarity": 0.9683
+      },
+      {
+        "test_query": "Will I get a curreng foreign exchange rate?",
+        "train_query": "What foreign exchange rate will I get?",
+        "similarity": 0.961
+      }
+    ]
+  },
+  "curated_splits": {
+    "train_size": 8492,
+    "val_size": 1500,
+    "test_size": 3080,
+    "disjointness_verified": true
+  }
+}

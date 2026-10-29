@@ -2,29 +2,30 @@
 
 A FastAPI service that triages support tickets (intent, priority, sentiment), retrieves relevant knowledge-base articles, drafts grounded replies for human review, and escalates low-confidence or high-risk tickets. Includes a prompt-injection filter, a Streamlit console, and an evaluation harness comparing a classical ML baseline against an LLM classifier.
 
-> **Status:** work in progress. Connectors (Zendesk, Slack, email) are tested with simulated payloads only. The evaluation benchmark now runs on the public PolyAI/banking77 dataset (450 test rows, CC BY 4.0). The classifier is a TF-IDF + calibrated linear baseline (CalibratedClassifierCV). The zero-shot LLM requires a live API key and is skipped if no key is configured (never simulated).
+> **Status:** work in progress. Connectors (Zendesk, Slack, email) are tested with simulated payloads only. Validated on the official Banking77 benchmark (3,080 test queries, CC BY 4.0). The classifier is a TF-IDF + calibrated linear baseline (CalibratedClassifierCV). The zero-shot LLM requires a live API key and is marked 'not run' when no key is configured.
 
 ---
 
 ## 🌟 Key Capabilities
 
-1. **Prompt Injection & Adversarial Jailbreak Defense**:
-   - Heuristic + pattern recognition shield inspecting incoming tickets for system prompt leakage, role hijacking, delimiter spoofing, and unauthorized escalation injection.
-   - Malicious tickets are quarantined immediately with security alerts.
+1. **Prompt Injection & Adversarial Filter (Regex Shield)**:
+   - Pattern recognition shield (3 unit tests; full security eval pending).
+   - Malicious tickets matching known injection signatures are quarantined.
 2. **Tool-Calling Agent Orchestrator**:
    - `customer_lookup`: CRM enrichment (ARR, Customer Tier, SLA entitlement, VIP status).
    - `kb_search`: Vector / TF-IDF semantic retrieval over support knowledge base runbooks.
    - `escalate`: Rule-based & confidence-aware escalation to specialized engineering queues (`<75% confidence`, `P0 outages`, `VIP Tier`).
    - `draft_reply`: Grounded AI response generation citing specific knowledge base articles.
-3. **Pluggable Multi-Dimensional Classifiers**:
-   - **TF-IDF + calibrated linear baseline**: Local TF-IDF + Logistic Regression model with probability calibration (`CalibratedClassifierCV(cv=5)`) delivering **sub-15ms** latency and **$0 inference cost**.
-   - **Zero-Shot LLM Reasoning**: Chain-of-thought intent, priority, urgency, and sentiment classification using Google Gemini / OpenAI (strictly live API calls; skipped in evals if no key is present).
+3. **Pluggable Intent Classifier & Policy Priority**:
+   - **TF-IDF + calibrated linear baseline**: TF-IDF + Logistic Regression calibrated via 5-fold cross-validation (`CalibratedClassifierCV`) achieving **90.87% Intent Macro F1** and **91.56% Accuracy** at **sub-10ms** latency and **$0 inference cost**.
+   - **Zero-Shot LLM Reasoning**: Live execution via Google Gemini / OpenAI (marked 'not run' in benchmarks when no API key is present).
+   - **Rule-Based Priority Policy**: Ticket priority (`P0`–`P3`) is derived from operational policy heuristics (customer SLA tier, outage keywords, financial block indicators) rather than circular ML labels.
 4. **Webhook connectors (simulated payloads)**:
    - **Zendesk Sandbox**: Webhook receiver and outbound REST ticket updater.
    - **Slack**: Interactive `/triage` command parser and Block Kit escalation channel dispatcher.
    - **Email Inbound**: SendGrid / Mailgun webhook parser with quote stripping.
 5. **Rigorous Evaluation Harness (`evals/eval_harness.py`)**:
-   - Measures Macro/Micro F1, Precision, Recall, Latency percentiles ($p_{50}, p_{95}, p_{99}$), and Cost per 1,000 tickets on public test splits.
+   - Benchmarks against majority-class, keyword heuristics, and 77-class difficulty baselines on the official 3,080 test split. Measures Brier score, ECE, latency percentiles, and validation threshold curves.
 6. **High-Aesthetic Streamlit Triage Console**:
    - Live ticket queue, deep-dive reasoning inspector with 1-click draft approval, interactive model eval visualizer, webhook simulator, and SLA analytics.
 7. **Containerized Production Deployment**:
@@ -88,32 +89,32 @@ python run.py --all
 
 ---
 
-## 📊 Evaluation Benchmark: TF-IDF Baseline vs. Zero-Shot LLM
+## 📊 Evaluation Benchmark & Baseline Hierarchy
 
-Run the evaluation harness:
+Run the benchmark harness:
 ```bash
 python run.py --eval
 # or
 python evals/eval_harness.py
 ```
 
-### Benchmark Results (Public Test Split: 450 Tickets)
+### Benchmark Results (Official Banking77 Test Split: 3,080 Tickets)
 
-Dataset: [`PolyAI/banking77`](evals/DATASET.md) (CC BY 4.0), 450 public test tickets across 5 intent categories and 4 priority levels (`seed=42`).
+Dataset: [`PolyAI/banking77`](evals/DATASET.md) (CC BY 4.0), 3,080 official test queries across 5 enterprise categories.
 
-| Metric | TF-IDF + Calibrated Linear Baseline | Zero-Shot LLM (`gemini-1.5-flash` / `gpt-4o-mini`) |
-| :--- | :---: | :---: |
-| **Intent Macro F1** | **99.55%** | Skipped (no API key configured) |
-| **Intent Micro F1 (Accuracy)** | **99.56%** | Skipped (no API key configured) |
-| **Priority Macro F1** | **99.40%** | Skipped (no API key configured) |
-| **Priority Micro F1** | **99.33%** | Skipped (no API key configured) |
-| **Latency $p_{50}$ (Median)** | **12.03 ms** | Skipped (no API key configured) |
-| **Latency $p_{95}$** | **30.88 ms** | Skipped (no API key configured) |
-| **Cost per 1,000 Tickets** | **$0.00** | Skipped (no API key configured) |
+| Model / Baseline | Intent Accuracy (Micro F1) | Intent Macro F1 | Calibration (ECE) | Latency ($p_{50}$) | Cost / 1k Tickets |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Majority-Class Baseline** (`Billing & Payments`) | 35.06% | 10.38% | N/A | 0.01 ms | $0.00 |
+| **Trivial Keyword Heuristic** | 64.16% | 55.76% | N/A | 0.05 ms | $0.00 |
+| **TF-IDF Linear (77 original intents)** *(context difficulty)* | 84.68% | 84.63% | N/A | 8.31 ms | $0.00 |
+| **TF-IDF Linear (5 classes, uncalibrated)** | 90.97% | 89.23% | 0.1422 | 8.31 ms | $0.00 |
+| **TF-IDF + Calibrated Linear Baseline** | **91.56%** | **90.87%** | **0.0814** | **8.31 ms** | **$0.00** |
+| **Zero-Shot LLM** | *not run* | *not run* | *not run* | *not run* | *not run* |
 
-> **Adversarial & Edge Cases Suite (Separate Unit Suite):** 3/3 prompt injection attacks blocked (100.0%) by regex guardrails across 24 edge cases in `evals/adversarial_and_edge_cases.json`. Note that regex filters only cover known attack signatures; semantic jailbreaks require LLM-based guardrails.
+> **Adversarial Guardrail Status:** regex filter, 3 unit tests; full security eval pending.
+> **Priority Policy Note:** Priority is rule-derived from intent, customer tier, and outage keywords (heuristic policy, not ground truth); it is intentionally omitted from statistical ML benchmarks.
 
-To run the live LLM benchmark, configure your API key in `.env`:
+To benchmark live LLM inference, configure your API key in `.env`:
 ```bash
 export GEMINI_API_KEY="your-gemini-key"   # or OPENAI_API_KEY
 python evals/eval_harness.py
@@ -121,9 +122,18 @@ python evals/eval_harness.py
 
 ---
 
+## ⚠️ Known Limitations
+
+1. **Domain & Query Style**: `PolyAI/banking77` consists of short, single-turn banking queries rather than multi-paragraph enterprise tickets or multi-turn conversational threads.
+2. **Intent Coarsening**: The 5 enterprise support categories are collapsed from 77 fine-grained intents via deterministic domain mapping.
+3. **Priority is Rule-Derived**: Priority is not a human ground-truth label; it is derived from operational policy heuristics (outage signals, customer tier, financial blocker rules).
+4. **Security Filter Coverage**: The prompt injection filter relies on static regular expressions (3 unit test cases); it defends against basic role-hijacking signatures but is not robust against novel or semantic adversarial attacks.
+
+---
+
 ## 🧪 Running the Test Suite
 
-Execute all 11 unit tests across guardrails, classifiers, pipeline, and connectors:
+Execute all 15 unit tests across guardrails, classifiers, leakage validation, pipeline, and connectors:
 ```bash
 python run.py --test
 # or

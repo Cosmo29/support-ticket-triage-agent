@@ -1,29 +1,392 @@
 {
-  "benchmark_timestamp": "2026-10-29T10:27:13Z",
+  "benchmark_timestamp": "2026-10-29T10:54:25Z",
   "dataset": {
     "name": "PolyAI/banking77",
     "source": "Hugging Face (CC BY 4.0 License)",
-    "test_split_size": 450,
-    "classes": 5
+    "splits": {
+      "train_size": 8492,
+      "val_size": 1500,
+      "test_size": 3080
+    },
+    "split_method": "Official test set (3080 rows) used untouched as test split. Clean train (9992 unique rows) split into 8492 train and 1500 val with seed=42 stratified by intent.",
+    "classes_mapped": 5,
+    "classes_original": 77
   },
-  "models": {
-    "tfidf_calibrated_baseline": {
-      "name": "TF-IDF + Calibrated Linear Baseline",
-      "intent_macro_f1": 0.9955,
-      "intent_micro_f1": 0.9956,
-      "priority_macro_f1": 0.994,
-      "priority_micro_f1": 0.9933,
-      "latency_p50_ms": 12.03,
-      "latency_p95_ms": 30.88,
-      "latency_p99_ms": 52.58,
+  "baselines_and_difficulty": {
+    "majority_class_baseline": {
+      "class_name": "Billing & Payments",
+      "accuracy": 0.3506,
+      "macro_f1": 0.1038
+    },
+    "trivial_keyword_baseline": {
+      "accuracy": 0.6416,
+      "macro_f1": 0.5576
+    },
+    "tfidf_77_class_baseline": {
+      "description": "TF-IDF Logistic Regression on 77 original Banking77 intents (context difficulty)",
+      "accuracy": 0.8468,
+      "macro_f1": 0.8463
+    },
+    "tfidf_5_class_uncalibrated": {
+      "accuracy": 0.9097,
+      "macro_f1": 0.8923,
+      "brier_score": 0.1699,
+      "ece": 0.1422
+    },
+    "tfidf_5_class_calibrated": {
+      "accuracy": 0.9156,
+      "macro_f1": 0.9087,
+      "brier_score": 0.1509,
+      "ece": 0.0814,
+      "latency_p50_ms": 8.31,
+      "latency_p95_ms": 22.3,
+      "latency_p99_ms": 52.5,
       "cost_per_1000_tickets_usd": 0.0
     },
-    "zero_shot_llm": null
+    "zero_shot_llm": "not run"
   },
-  "adversarial_and_edge_suite": {
-    "total_cases": 24,
-    "injection_cases": 3,
-    "injection_blocked": 3,
-    "block_rate": 100.0
+  "priority_policy_note": "Priority is derived via deterministic rule heuristics (signals: customer tier, urgency language, outage keywords). It is not an ML ground-truth label and is omitted from statistical F1 benchmarks.",
+  "confusion_matrix": {
+    "labels": [
+      "Account & Authentication",
+      "Billing & Payments",
+      "General Service Inquiry",
+      "Refunds & Disputes",
+      "Technical & System Issues"
+    ],
+    "matrix": [
+      [
+        400,
+        20,
+        14,
+        5,
+        1
+      ],
+      [
+        5,
+        1022,
+        38,
+        8,
+        7
+      ],
+      [
+        28,
+        51,
+        931,
+        11,
+        19
+      ],
+      [
+        7,
+        15,
+        2,
+        254,
+        2
+      ],
+      [
+        3,
+        8,
+        16,
+        0,
+        213
+      ]
+    ]
+  },
+  "per_class_metrics": {
+    "Account & Authentication": {
+      "precision": 0.9029,
+      "recall": 0.9091,
+      "f1_score": 0.906,
+      "support": 440
+    },
+    "Billing & Payments": {
+      "precision": 0.9158,
+      "recall": 0.9463,
+      "f1_score": 0.9308,
+      "support": 1080
+    },
+    "General Service Inquiry": {
+      "precision": 0.9301,
+      "recall": 0.8952,
+      "f1_score": 0.9123,
+      "support": 1040
+    },
+    "Refunds & Disputes": {
+      "precision": 0.9137,
+      "recall": 0.9071,
+      "f1_score": 0.9104,
+      "support": 280
+    },
+    "Technical & System Issues": {
+      "precision": 0.8802,
+      "recall": 0.8875,
+      "f1_score": 0.8838,
+      "support": 240
+    }
+  },
+  "top_10_confused_examples": [
+    {
+      "true_intent": "General Service Inquiry",
+      "pred_intent": "Account & Authentication",
+      "confidence": 0.9762,
+      "text": "Why can't I see my PIN?"
+    },
+    {
+      "true_intent": "General Service Inquiry",
+      "pred_intent": "Billing & Payments",
+      "confidence": 0.969,
+      "text": "Is there a fee for exchanging cash?"
+    },
+    {
+      "true_intent": "General Service Inquiry",
+      "pred_intent": "Billing & Payments",
+      "confidence": 0.9614,
+      "text": "My account was charged for a withdraw I tried to make that was decline."
+    },
+    {
+      "true_intent": "General Service Inquiry",
+      "pred_intent": "Billing & Payments",
+      "confidence": 0.9461,
+      "text": "I've tried numerous times to submit a transfer of funds. Why isn't it going through?"
+    },
+    {
+      "true_intent": "Account & Authentication",
+      "pred_intent": "Billing & Payments",
+      "confidence": 0.9414,
+      "text": "Why can't I see the top-up amount I just added to my account?"
+    },
+    {
+      "true_intent": "General Service Inquiry",
+      "pred_intent": "Account & Authentication",
+      "confidence": 0.9336,
+      "text": "I don't know where to look to find my PIN."
+    },
+    {
+      "true_intent": "General Service Inquiry",
+      "pred_intent": "Account & Authentication",
+      "confidence": 0.9306,
+      "text": "Why can't I find my PIN?"
+    },
+    {
+      "true_intent": "Account & Authentication",
+      "pred_intent": "Billing & Payments",
+      "confidence": 0.9293,
+      "text": "Where's the money that got charged to my card? It's not showing up in my account balance"
+    },
+    {
+      "true_intent": "Refunds & Disputes",
+      "pred_intent": "Account & Authentication",
+      "confidence": 0.9278,
+      "text": "Think someone has took money out with my card. What shall I do?"
+    },
+    {
+      "true_intent": "Account & Authentication",
+      "pred_intent": "Billing & Payments",
+      "confidence": 0.9181,
+      "text": "Why is my money gone right when I attempted to top up"
+    }
+  ],
+  "calibration": {
+    "reliability_diagram_bins_calibrated": [
+      {
+        "bin": "(0.2, 0.3]",
+        "count": 1,
+        "avg_confidence": 0.2724,
+        "avg_accuracy": 1.0,
+        "gap": 0.7276
+      },
+      {
+        "bin": "(0.3, 0.4]",
+        "count": 14,
+        "avg_confidence": 0.3759,
+        "avg_accuracy": 0.2857,
+        "gap": 0.0901
+      },
+      {
+        "bin": "(0.4, 0.5]",
+        "count": 58,
+        "avg_confidence": 0.4699,
+        "avg_accuracy": 0.5517,
+        "gap": 0.0818
+      },
+      {
+        "bin": "(0.5, 0.6]",
+        "count": 276,
+        "avg_confidence": 0.5491,
+        "avg_accuracy": 0.6848,
+        "gap": 0.1357
+      },
+      {
+        "bin": "(0.6, 0.7]",
+        "count": 249,
+        "avg_confidence": 0.6515,
+        "avg_accuracy": 0.7912,
+        "gap": 0.1397
+      },
+      {
+        "bin": "(0.7, 0.8]",
+        "count": 355,
+        "avg_confidence": 0.7498,
+        "avg_accuracy": 0.893,
+        "gap": 0.1432
+      },
+      {
+        "bin": "(0.8, 0.9]",
+        "count": 656,
+        "avg_confidence": 0.8541,
+        "avg_accuracy": 0.9482,
+        "gap": 0.0941
+      },
+      {
+        "bin": "(0.9, 1.0]",
+        "count": 1471,
+        "avg_confidence": 0.951,
+        "avg_accuracy": 0.9912,
+        "gap": 0.0402
+      }
+    ],
+    "reliability_diagram_bins_uncalibrated": [
+      {
+        "bin": "(0.2, 0.3]",
+        "count": 8,
+        "avg_confidence": 0.2775,
+        "avg_accuracy": 0.375,
+        "gap": 0.0975
+      },
+      {
+        "bin": "(0.3, 0.4]",
+        "count": 108,
+        "avg_confidence": 0.3654,
+        "avg_accuracy": 0.5185,
+        "gap": 0.1532
+      },
+      {
+        "bin": "(0.4, 0.5]",
+        "count": 226,
+        "avg_confidence": 0.4576,
+        "avg_accuracy": 0.6327,
+        "gap": 0.1751
+      },
+      {
+        "bin": "(0.5, 0.6]",
+        "count": 272,
+        "avg_confidence": 0.551,
+        "avg_accuracy": 0.7684,
+        "gap": 0.2173
+      },
+      {
+        "bin": "(0.6, 0.7]",
+        "count": 340,
+        "avg_confidence": 0.6533,
+        "avg_accuracy": 0.8971,
+        "gap": 0.2437
+      },
+      {
+        "bin": "(0.7, 0.8]",
+        "count": 485,
+        "avg_confidence": 0.7541,
+        "avg_accuracy": 0.9567,
+        "gap": 0.2026
+      },
+      {
+        "bin": "(0.8, 0.9]",
+        "count": 769,
+        "avg_confidence": 0.8556,
+        "avg_accuracy": 0.9844,
+        "gap": 0.1288
+      },
+      {
+        "bin": "(0.9, 1.0]",
+        "count": 872,
+        "avg_confidence": 0.9441,
+        "avg_accuracy": 0.992,
+        "gap": 0.0479
+      }
+    ]
+  },
+  "validation_threshold_tuning": {
+    "cost_assumptions": {
+      "auto_handled_correct_usd": 0.1,
+      "auto_handled_error_usd": 5.0,
+      "human_escalate_usd": 2.0
+    },
+    "recommended_threshold": 0.65,
+    "sweep": [
+      {
+        "threshold": 0.5,
+        "coverage_percent": 97.87,
+        "auto_handled_precision_percent": 91.01,
+        "escalation_rate_percent": 2.13,
+        "expected_cost_per_ticket_usd": 0.572
+      },
+      {
+        "threshold": 0.55,
+        "coverage_percent": 94.07,
+        "auto_handled_precision_percent": 92.56,
+        "escalation_rate_percent": 5.93,
+        "expected_cost_per_ticket_usd": 0.556
+      },
+      {
+        "threshold": 0.6,
+        "coverage_percent": 89.0,
+        "auto_handled_precision_percent": 94.01,
+        "escalation_rate_percent": 11.0,
+        "expected_cost_per_ticket_usd": 0.57
+      },
+      {
+        "threshold": 0.65,
+        "coverage_percent": 85.13,
+        "auto_handled_precision_percent": 95.07,
+        "escalation_rate_percent": 14.87,
+        "expected_cost_per_ticket_usd": 0.588
+      },
+      {
+        "threshold": 0.7,
+        "coverage_percent": 81.0,
+        "auto_handled_precision_percent": 95.14,
+        "escalation_rate_percent": 19.0,
+        "expected_cost_per_ticket_usd": 0.654
+      },
+      {
+        "threshold": 0.75,
+        "coverage_percent": 76.13,
+        "auto_handled_precision_percent": 95.97,
+        "escalation_rate_percent": 23.87,
+        "expected_cost_per_ticket_usd": 0.704
+      },
+      {
+        "threshold": 0.8,
+        "coverage_percent": 69.4,
+        "auto_handled_precision_percent": 96.64,
+        "escalation_rate_percent": 30.6,
+        "expected_cost_per_ticket_usd": 0.796
+      },
+      {
+        "threshold": 0.85,
+        "coverage_percent": 61.13,
+        "auto_handled_precision_percent": 97.16,
+        "escalation_rate_percent": 38.87,
+        "expected_cost_per_ticket_usd": 0.923
+      },
+      {
+        "threshold": 0.9,
+        "coverage_percent": 49.27,
+        "auto_handled_precision_percent": 98.38,
+        "escalation_rate_percent": 50.73,
+        "expected_cost_per_ticket_usd": 1.103
+      },
+      {
+        "threshold": 0.95,
+        "coverage_percent": 26.53,
+        "auto_handled_precision_percent": 98.99,
+        "escalation_rate_percent": 73.47,
+        "expected_cost_per_ticket_usd": 1.509
+      }
+    ]
+  },
+  "security_evaluation": {
+    "summary": "regex filter, 3 unit tests; full security eval pending.",
+    "tests_passed": 3,
+    "total_security_unit_tests": 3
   }
 }

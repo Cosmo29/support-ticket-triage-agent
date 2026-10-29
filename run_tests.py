@@ -42,6 +42,12 @@ def run_all_tests():
         test_slack_payload_parser,
         test_email_webhook_parser
     )
+    from tests.test_benchmark_validation import (
+        test_split_disjointness,
+        test_deterministic_split_with_seed_42,
+        test_calibration_validity,
+        test_llm_require_live_behavior
+    )
 
     test_functions = [
         ("Guardrail: Clean Ticket Pass-through", test_clean_support_ticket),
@@ -50,6 +56,10 @@ def run_all_tests():
         ("Guardrail: HTML/Delimiter Sanitizer", test_text_sanitizer),
         ("Classifier: TF-IDF + Calibrated Linear Baseline", test_tfidf_calibrated_baseline),
         ("Classifier: Zero-Shot LLM API Key Enforcement", test_zero_shot_classifier_key_enforcement),
+        ("Validation: Split Disjointness (0 Leakage)", test_split_disjointness),
+        ("Validation: Deterministic Seed 42 Splits", test_deterministic_split_with_seed_42),
+        ("Validation: Probability Calibration Validity", test_calibration_validity),
+        ("Validation: LLM Require Live Enforcement", test_llm_require_live_behavior),
         ("Pipeline: Enterprise P0 Triage & Tool Calling", test_enterprise_outage_triage),
         ("Pipeline: Adversarial Attack Containment", test_malicious_injection_quarantine),
         ("Connectors: Zendesk Webhook Parser", test_zendesk_webhook_parser),

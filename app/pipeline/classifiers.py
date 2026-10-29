@@ -37,21 +37,63 @@ PRIORITY_LEVELS = ["P0", "P1", "P2", "P3"]
 # ---------------------------------------------------------------------------
 # 1. TF-IDF + Calibrated Linear Baseline
 # ---------------------------------------------------------------------------
+def determine_priority_heuristic(
+    subject: str,
+    body: str,
+    intent: str,
+    customer_tier: str = "Free",
+    vip_status: bool = False
+) -> str:
+    """
+    Rule-based heuristic for ticket priority.
+    Priority is NOT an ML ground-truth label; it is derived from operational policy signals:
+    - Outage/security breach keywords -> P0
+    - Financial block / account lockout -> P1
+    - Refunds/disputes or customer urgency keywords -> P2
+    - Enterprise / VIP status elevates priority
+    - General service inquiries -> P3
+    """
+    text = f"{subject} {body}".lower()
+
+    # 1. P0 Blocker: Outage & Critical Security Compromise
+    if any(k in text for k in [
+        "outage", "downtime", "system down", "all users affected", "crash",
+        "unreachable", "stolen", "compromised", "lost card", "lost phone",
+        "identity theft", "fraud", "unauthorized access"
+    ]):
+        return "P0"
+
+    # 2. P1 High Priority: Financial Blocker / Account Lockout
+    if any(k in text for k in [
+        "blocked", "declined", "passcode forgotten", "pin blocked",
+        "cannot login", "locked out", "not recognised", "unrecognised",
+        "card swallowed", "stolen card"
+    ]) or (vip_status and intent in ("Refunds & Disputes", "Billing & Payments")):
+        return "P1"
+
+    # 3. P2 Medium Priority: Refunds, Disputes & Operational Issues
+    if intent in ("Refunds & Disputes", "Technical & System Issues") or any(k in text for k in [
+        "refund", "dispute", "failed", "not working", "wrong amount", "urgent", "asap", "error"
+    ]):
+        return "P2"
+
+    # 4. P3 Low Priority: General Information
+    return "P3"
+
 class TfidfCalibratedBaseline:
     """
     TF-IDF + Calibrated Linear Baseline.
     Trains on labeled support tickets using TF-IDF n-grams and Logistic Regression
     calibrated via 5-fold cross-validation (CalibratedClassifierCV) for true posterior probabilities.
+    Priority is determined via deterministic rule heuristics, not pseudo-ML labels.
     """
     def __init__(self, training_data_path: str = TRAIN_PATH):
         self.training_data_path = training_data_path
         self.intent_pipeline: Optional[Pipeline] = None
-        self.priority_pipeline: Optional[Pipeline] = None
         self.is_trained = False
         self._train()
 
     def _train(self):
-        # Check active path
         train_file = self.training_data_path
         if not os.path.exists(train_file):
             if os.path.exists(LEGACY_TRAIN_PATH):
@@ -65,11 +107,10 @@ class TfidfCalibratedBaseline:
                 data = json.load(f)
 
             texts = [f"{item.get('subject', '')} {item.get('body', '')}".strip() for item in data]
-            intent_labels = [item.get("intent") or item.get("ground_truth_intent", "General Product Inquiry") for item in data]
-            priority_labels = [item.get("priority") or item.get("ground_truth_priority", "P3") for item in data]
+            intent_labels = [item.get("intent") or item.get("ground_truth_intent", "General Service Inquiry") for item in data]
 
             # Intent Classifier Pipeline: TF-IDF + 5-fold Calibrated Logistic Regression
-            base_intent_lr = LogisticRegression(C=1.0, max_iter=500, class_weight="balanced")
+            base_intent_lr = LogisticRegression(C=1.0, max_iter=500, class_weight="balanced", random_state=42)
             calibrated_intent = CalibratedClassifierCV(estimator=base_intent_lr, cv=min(5, len(data)), method="sigmoid")
             
             self.intent_pipeline = Pipeline([
@@ -78,28 +119,26 @@ class TfidfCalibratedBaseline:
             ])
             self.intent_pipeline.fit(texts, intent_labels)
 
-            # Priority Classifier Pipeline: TF-IDF + 5-fold Calibrated Logistic Regression
-            base_priority_lr = LogisticRegression(C=1.0, max_iter=500, class_weight="balanced")
-            calibrated_priority = CalibratedClassifierCV(estimator=base_priority_lr, cv=min(5, len(data)), method="sigmoid")
-            
-            self.priority_pipeline = Pipeline([
-                ("tfidf", TfidfVectorizer(ngram_range=(1, 2), min_df=1, sublinear_tf=True)),
-                ("clf", calibrated_priority)
-            ])
-            self.priority_pipeline.fit(texts, priority_labels)
-
             self.is_trained = True
             logger.info(f"TF-IDF + calibrated linear baseline successfully trained on {len(data)} examples from {os.path.basename(train_file)}.")
         except Exception as e:
             logger.error(f"Error training TF-IDF calibrated baseline: {e}", exc_info=True)
 
-    def classify(self, subject: str, body: str) -> ClassificationResult:
+    def predict_proba(self, text: str) -> Dict[str, float]:
+        """Returns calibrated posterior probability distribution across intent classes."""
+        if not self.is_trained or not self.intent_pipeline:
+            return {}
+        probs = self.intent_pipeline.predict_proba([text])[0]
+        classes = self.intent_pipeline.classes_
+        return {str(cls): float(prob) for cls, prob in zip(classes, probs)}
+
+    def classify(self, subject: str, body: str, customer_tier: str = "Free", vip_status: bool = False) -> ClassificationResult:
         start_time = time.time()
         text = f"{subject} {body}".strip()
 
         if not self.is_trained or not text:
             return ClassificationResult(
-                intent="General Product Inquiry",
+                intent="General Service Inquiry",
                 priority="P3",
                 urgency_score=0.2,
                 sentiment="NEUTRAL",
@@ -116,11 +155,8 @@ class TfidfCalibratedBaseline:
         predicted_intent = intent_classes[top_intent_idx]
         calibrated_intent_confidence = float(intent_probs[top_intent_idx])
 
-        # Predict priority + calibrated posterior probability
-        priority_probs = self.priority_pipeline.predict_proba([text])[0]
-        priority_classes = self.priority_pipeline.classes_
-        top_priority_idx = np.argmax(priority_probs)
-        predicted_priority = priority_classes[top_priority_idx]
+        # Priority is derived via explicit heuristic rule (signals: outage, urgency, tier, intent)
+        predicted_priority = determine_priority_heuristic(subject, body, predicted_intent, customer_tier, vip_status)
 
         # Heuristic Sentiment & Urgency based on keywords
         sentiment, urgency = self._extract_sentiment_and_urgency(text, predicted_priority)
@@ -128,7 +164,8 @@ class TfidfCalibratedBaseline:
         latency_ms = round((time.time() - start_time) * 1000, 2)
         reasoning = (
             f"TF-IDF + calibrated linear model predicted '{predicted_intent}' with "
-            f"{calibrated_intent_confidence*100:.1f}% calibrated confidence and priority '{predicted_priority}'."
+            f"{calibrated_intent_confidence*100:.1f}% calibrated confidence. "
+            f"Priority '{predicted_priority}' assigned via rule heuristic (not ground truth)."
         )
 
         return ClassificationResult(
@@ -181,7 +218,7 @@ class ZeroShotLLMClassifier:
     def has_api_key(self) -> bool:
         return bool(self.gemini_key or self.openai_key)
 
-    def classify(self, subject: str, body: str, require_live: bool = False) -> ClassificationResult:
+    def classify(self, subject: str, body: str, require_live: bool = False, **kwargs) -> ClassificationResult:
         start_time = time.time()
         combined_text = f"Subject: {subject}\nBody: {body}".strip()
 

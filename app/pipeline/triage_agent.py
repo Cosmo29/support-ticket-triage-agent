@@ -121,7 +121,12 @@ class TriageAgent:
         # -------------------------------------------------------------
         use_base = use_baseline or use_fine_tuned
         classifier = self.tfidf_baseline if use_base else self.zero_shot_classifier
-        classification = classifier.classify(ticket_input.subject, ticket_input.body)
+        classification = classifier.classify(
+            ticket_input.subject,
+            ticket_input.body,
+            customer_tier=customer.tier,
+            vip_status=customer.vip_status
+        )
 
         # -------------------------------------------------------------
         # Step 4: Tool Call - Knowledge Base Retrieval
