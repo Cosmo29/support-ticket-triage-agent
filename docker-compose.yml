@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  triage-api:
+    build: .
+    container_name: support-triage-api
+    command: python run.py --server
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - CONFIDENCE_THRESHOLD=0.75
+      - ENABLE_PROMPT_INJECTION_SHIELD=true
+      - AUTO_ESCALATE_P0=true
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ZENDESK_SUBDOMAIN=${ZENDESK_SUBDOMAIN:-sandbox-company}
+      - ZENDESK_EMAIL=${ZENDESK_EMAIL:-agent@example.com}
+      - ZENDESK_API_TOKEN=${ZENDESK_API_TOKEN:-sandbox_token}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-https://hooks.slack.com/services/MOCK/TOKEN/WEBHOOK}
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  triage-dashboard:
+    build: .
+    container_name: support-triage-dashboard
+    command: python run.py --dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_PORT=8501
+    volumes:
+      - ./data:/app/data
+      - ./evals:/app/evals
+    depends_on:
+      - triage-api
+    restart: unless-stopped

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "TRAIN-01",
+    "subject": "Charge on credit card after subscription cancelled",
+    "body": "I was charged $499 on my Visa yesterday even though I cancelled my annual subscription last week. Please refund this immediately.",
+    "intent": "Billing & Refunds",
+    "priority": "P2",
+    "urgency": 0.6,
+    "sentiment": "FRUSTRATED"
+  },
+  {
+    "id": "TRAIN-02",
+    "subject": "Need invoice with VAT ID for April",
+    "body": "Could our finance department please get the updated invoice including our European VAT ID DE392819201? Our accounting cycle closes tomorrow.",
+    "intent": "Billing & Refunds",
+    "priority": "P3",
+    "urgency": 0.4,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-03",
+    "subject": "Payment failed ERR_PAYMENT_FAILED_01",
+    "body": "We received an automated email saying our monthly renewal payment failed. Our corporate card was updated. Please retry the charge.",
+    "intent": "Billing & Refunds",
+    "priority": "P2",
+    "urgency": 0.5,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-04",
+    "subject": "Requesting 14-day money back guarantee refund",
+    "body": "We tried the product for 5 days but our compliance team decided against it. We are within the 14-day refund window. Please process full refund.",
+    "intent": "Billing & Refunds",
+    "priority": "P2",
+    "urgency": 0.5,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-05",
+    "subject": "Okta SSO login failing with SAML signature error",
+    "body": "None of our 250 engineers can log in this morning. We get SAML_CERT_EXPIRED when redirected from Okta. All developers blocked.",
+    "intent": "SSO & Authentication",
+    "priority": "P1",
+    "urgency": 0.9,
+    "sentiment": "ANGRY"
+  },
+  {
+    "id": "TRAIN-06",
+    "subject": "User locked out after losing 2FA phone",
+    "body": "One of our product managers lost their authenticator phone and ran out of emergency backup codes. Can you reset MFA for user dev@company.com?",
+    "intent": "SSO & Authentication",
+    "priority": "P2",
+    "urgency": 0.7,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-07",
+    "subject": "Azure AD SCIM sync throwing HTTP 409 Conflict",
+    "body": "Our Azure AD automated provisioning is failing for new hires with error 409 User Already Exists. Please check external ID mapping.",
+    "intent": "SSO & Authentication",
+    "priority": "P2",
+    "urgency": 0.6,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-08",
+    "subject": "Entity ID mismatch on SAML metadata",
+    "body": "We are configuring Google Workspace SSO and the metadata upload shows Entity ID mismatch. What is the exact ACS URL to enter?",
+    "intent": "SSO & Authentication",
+    "priority": "P3",
+    "urgency": 0.4,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-09",
+    "subject": "Getting 429 Too Many Requests on /api/v2/events",
+    "body": "Our production ingestion pipeline started hitting HTTP 429 rate limits. X-RateLimit-Reset shows 60 seconds. Can we increase our rate limit?",
+    "intent": "API & Rate Limits",
+    "priority": "P1",
+    "urgency": 0.8,
+    "sentiment": "FRUSTRATED"
+  },
+  {
+    "id": "TRAIN-10",
+    "subject": "Webhook delivery failures and timeout",
+    "body": "Our endpoint https://api.client.com/webhook is not receiving ticket.created events. Are there retries or backoff in place?",
+    "intent": "API & Rate Limits",
+    "priority": "P2",
+    "urgency": 0.6,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-11",
+    "subject": "API documentation question about pagination",
+    "body": "Does the /api/v2/tickets endpoint use cursor-based pagination or offset/limit? Looking for examples in Python.",
+    "intent": "API & Rate Limits",
+    "priority": "P3",
+    "urgency": 0.2,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-12",
+    "subject": "Need temporary rate limit increase for data migration",
+    "body": "We are migrating 100k records this Saturday between 02:00 and 06:00 UTC. Can our Enterprise rate limit be temporarily increased?",
+    "intent": "API & Rate Limits",
+    "priority": "P2",
+    "urgency": 0.5,
+    "sentiment": "POSITIVE"
+  },
+  {
+    "id": "TRAIN-13",
+    "subject": "URGENT: Entire production database unreachable - 500 errors",
+    "body": "All customer requests failing with 500 Internal Server Error. Web dashboard completely down. Total outage across US-East.",
+    "intent": "Cloud Outage & Downtime",
+    "priority": "P0",
+    "urgency": 1.0,
+    "sentiment": "ANGRY"
+  },
+  {
+    "id": "TRAIN-14",
+    "subject": "Service degradation: high API latency over 4500ms",
+    "body": "Our monitoring alerts show API response times spiked from 80ms to over 4.5 seconds. Requests timing out on gateway.",
+    "intent": "Cloud Outage & Downtime",
+    "priority": "P1",
+    "urgency": 0.85,
+    "sentiment": "FRUSTRATED"
+  },
+  {
+    "id": "TRAIN-15",
+    "subject": "Is there a service disruption in EU-West?",
+    "body": "We are seeing intermittent 502 Bad Gateway responses on EU endpoints. Is this related to an active incident?",
+    "intent": "Cloud Outage & Downtime",
+    "priority": "P1",
+    "urgency": 0.8,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-16",
+    "subject": "GDPR Article 17 Data Erasure Request for user",
+    "body": "In accordance with GDPR Article 17, our customer john.doe@sample.com requests complete cryptographic erasure of all personal data.",
+    "intent": "GDPR & Privacy",
+    "priority": "P2",
+    "urgency": 0.5,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-17",
+    "subject": "Full workspace data export for compliance audit",
+    "body": "Our security auditor requires a full archive of workspace audit logs and user activity from Jan to Dec. Please initiate export.",
+    "intent": "GDPR & Privacy",
+    "priority": "P3",
+    "urgency": 0.4,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-18",
+    "subject": "CCPA opt-out and personal data inquiry",
+    "body": "Please provide information on third-party sub-processors and confirm California consumer privacy rights compliance.",
+    "intent": "GDPR & Privacy",
+    "priority": "P3",
+    "urgency": 0.3,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-19",
+    "subject": "How do I change my profile avatar picture?",
+    "body": "I clicked on account settings but can't find where to upload my profile photo. Where is that located?",
+    "intent": "General Inquiry",
+    "priority": "P3",
+    "urgency": 0.1,
+    "sentiment": "NEUTRAL"
+  },
+  {
+    "id": "TRAIN-20",
+    "subject": "Feature request: Dark mode for mobile web",
+    "body": "Love using the tool! Any plans to add an OLED dark mode for mobile browsers in upcoming releases?",
+    "intent": "General Inquiry",
+    "priority": "P3",
+    "urgency": 0.1,
+    "sentiment": "POSITIVE"
+  }
+]

@@ -1,0 +1,67 @@
+[
+  {
+    "customer_id": "CUST-9011",
+    "name": "Acme Global Financial",
+    "email_domain": "acmefinancial.com",
+    "contact_email": "cto@acmefinancial.com",
+    "tier": "Enterprise",
+    "arr": 120000,
+    "sla_tier": "P0_15m",
+    "dedicated_csm": "Sarah Jenkins",
+    "open_tickets_count": 1,
+    "account_status": "Active",
+    "vip_status": true
+  },
+  {
+    "customer_id": "CUST-4412",
+    "name": "Starlight Health Technologies",
+    "email_domain": "starlight-health.org",
+    "contact_email": "it-ops@starlight-health.org",
+    "tier": "Enterprise",
+    "arr": 85000,
+    "sla_tier": "P0_15m",
+    "dedicated_csm": "Marcus Reed",
+    "open_tickets_count": 0,
+    "account_status": "Active",
+    "vip_status": true
+  },
+  {
+    "customer_id": "CUST-2231",
+    "name": "HyperScale Logistics",
+    "email_domain": "hyperscale.io",
+    "contact_email": "devs@hyperscale.io",
+    "tier": "Scale",
+    "arr": 24000,
+    "sla_tier": "P1_1h",
+    "dedicated_csm": "Jordan Patel",
+    "open_tickets_count": 2,
+    "account_status": "Active",
+    "vip_status": false
+  },
+  {
+    "customer_id": "CUST-1089",
+    "name": "IndieDev Studio",
+    "email_domain": "indiedev.co",
+    "contact_email": "founder@indiedev.co",
+    "tier": "Starter",
+    "arr": 1200,
+    "sla_tier": "P2_4h",
+    "dedicated_csm": null,
+    "open_tickets_count": 0,
+    "account_status": "Active",
+    "vip_status": false
+  },
+  {
+    "customer_id": "CUST-0092",
+    "name": "Alex Freelancer",
+    "email_domain": "gmail.com",
+    "contact_email": "alex.freelancer@gmail.com",
+    "tier": "Free",
+    "arr": 0,
+    "sla_tier": "P3_24h",
+    "dedicated_csm": null,
+    "open_tickets_count": 0,
+    "account_status": "Active",
+    "vip_status": false
+  }
+]
