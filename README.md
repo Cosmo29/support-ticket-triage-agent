@@ -2,7 +2,7 @@
 
 A FastAPI service that triages support tickets (intent, priority, sentiment), retrieves relevant knowledge-base articles, drafts grounded replies for human review, and escalates low-confidence or high-risk tickets. Includes a prompt-injection filter, a Streamlit console, and an evaluation harness comparing a classical ML baseline against an LLM classifier.
 
-> **Status:** Portfolio project. Tested with a Zendesk sandbox webhook; Slack and email connectors are tested with simulated payloads only.
+> **Status:** work in progress. Connectors (Zendesk, Slack, email) are tested with simulated payloads only. The LLM column in the benchmark below was produced by a keyword-based simulator, not a real LLM, and is being replaced. The TF-IDF classifier is trained on a 20-row synthetic set.
 
 ---
 
@@ -17,9 +17,9 @@ A FastAPI service that triages support tickets (intent, priority, sentiment), re
    - `escalate`: Rule-based & confidence-aware escalation to specialized engineering queues (`<75% confidence`, `P0 outages`, `VIP Tier`).
    - `draft_reply`: Grounded AI response generation citing specific knowledge base articles.
 3. **Pluggable Multi-Dimensional Classifiers**:
-   - **Fine-Tuned Classifier**: Local TF-IDF + Calibrated Classifier delivering **sub-5ms** latency and **$0 inference cost**.
+   - **TF-IDF + logistic regression baseline**: Local TF-IDF + Logistic Regression model delivering **sub-5ms** latency and **$0 inference cost**.
    - **Zero-Shot LLM Reasoning**: Chain-of-thought intent, priority, urgency, and sentiment classification using Google Gemini / OpenAI (with built-in offline fallback).
-4. **Real Webhook Connectors**:
+4. **Webhook connectors (simulated payloads)**:
    - **Zendesk Sandbox**: Webhook receiver and outbound REST ticket updater.
    - **Slack**: Interactive `/triage` command parser and Block Kit escalation channel dispatcher.
    - **Email Inbound**: SendGrid / Mailgun webhook parser with quote stripping.
@@ -47,7 +47,7 @@ flowchart TD
     G -->|Malicious Payload| H[Quarantine & Alert Security Ops]
     G -->|Safe / Sanitized| I[Tool: CRM Customer Lookup]
 
-    I --> J[Classification Engine: Fine-Tuned vs Zero-Shot]
+    I --> J[Classification Engine: TF-IDF Baseline vs Zero-Shot]
     J --> K[Tool: Knowledge Base Retriever]
     K --> L[SLA Target & Urgency Calculation]
 
@@ -88,7 +88,7 @@ python run.py --all
 
 ---
 
-## 📊 Evaluation Benchmark: Fine-Tuned vs. Zero-Shot LLM
+## 📊 Evaluation Benchmark: TF-IDF Baseline vs. Zero-Shot LLM
 
 Run the evaluation harness:
 ```bash
@@ -97,17 +97,7 @@ python run.py --eval
 python evals/eval_harness.py
 ```
 
-### Benchmark Results on 24 Curated Test Cases:
-
-| Metric | Fine-Tuned (TF-IDF + Calibrated) | Zero-Shot LLM | Trade-off Insight |
-| :--- | :---: | :---: | :--- |
-| **Intent Macro F1** | **67.90%** | **91.11%** | Zero-Shot handles novel phrasing and nuance (+23% F1) |
-| **Intent Micro F1 (Acc)** | **70.83%** | **91.67%** | LLM achieves >91% accuracy across all categories |
-| **Priority Macro F1** | **42.43%** | **92.23%** | LLM accurately distinguishes P0 Blocker from P1 Degraded |
-| **Latency $p_{50}$ (Median)** | **4.29 ms** | **60.79 ms** | Fine-tuned model is **14x faster** |
-| **Latency $p_{95}$** | **9.56 ms** | **67.79 ms** | Fine-tuned model guarantees sub-10ms SLAs |
-| **Cost / 1,000 Tickets** | **$0.00** | **$0.0817** | Fine-tuned has zero marginal cloud cost |
-| **Prompt Injection Defense** | **100.0%** | **Protected** | Guardrail shield quarantines 100% of adversarial attacks |
+Results being regenerated with real data.
 
 ---
 
